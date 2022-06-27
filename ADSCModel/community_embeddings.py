@@ -5,6 +5,7 @@ from utils.embedding import chunkize_serial
 
 from scipy.stats import multivariate_normal
 import logging as log
+import utils.IO_utils as io_utils  # added by me
 
 log.basicConfig(format='%(asctime).19s %(levelname)s %(filename)s: %(lineno)s %(message)s', level=log.DEBUG)
 
@@ -28,7 +29,10 @@ class Community2Vec(object):
 
         log.info("Fitting: {} communities".format(model.k))
         self.g_mixture.fit(model.node_embedding)
-
+        # my code
+        output_file = 'Dblp'
+        io_utils.save_embedding(model.node_embedding, model.vocab, file_name="{}_initial_node".format(output_file))
+        io_utils.save_embedding(model.context_embedding, model.vocab, file_name="{}_initial_context".format(output_file))
         # diag_covars = []
         # for covar in g.covariances_:
         #     diag = np.diag(covar)
