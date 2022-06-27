@@ -160,3 +160,4 @@ class Context2Vec(object):
         elapsed = time.time() - start
         log.info("training on %i nodes took %.1fs, %.0f nodes/s" %
                     (node_count[0], elapsed, node_count[0] / elapsed if elapsed else 0.0))
+        
