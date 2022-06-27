@@ -58,6 +58,9 @@ if __name__ == "__main__":
 
     #CONSTRUCT THE GRAPH
     G = graph_utils.load_matfile(os.path.join('./data', input_file, input_file + '.mat'), undirected=True)
+    # my code
+    # G = graph_utils.load_edge_file(r'C:\Users\Aris\Downloads\ComE-master\data\Dblp\enron.edges')
+    # end of my code
     # Sampling the random walks for context
     log.info("sampling the paths")
     walk_files = graph_utils.write_walks_to_disk(G, os.path.join(walks_filebase, "{}.walks".format(output_file)),
@@ -68,6 +71,7 @@ if __name__ == "__main__":
                                                  num_workers=num_workers)
 
     vertex_counts = graph_utils.count_textfiles(walk_files, num_workers)
+    log.info("constructing the model")
     model = Model(vertex_counts,
                   size=representation_size,
                   down_sampling=down_sampling,
@@ -152,4 +156,10 @@ if __name__ == "__main__":
                                                                                                                        iter_node,
                                                                                                                             model.k,
                                                                                                                             down_sampling))
-
+                # my code
+                t = range(0, 5)  # replaces model.vocab
+                io_utils.save_embedding(model.context_embedding, model.vocab, file_name="{}_context".format(output_file))
+                io_utils.save_embedding(model.covariance_mat, t, file_name="{}_communities_covariance".format(output_file))
+                io_utils.save_embedding(model.centroid, t, file_name="{}_communities_mean".format(output_file))
+                io_utils.save_embedding(model.pi, model.vocab,
+                                        file_name="{}_communities_pi".format(output_file))
