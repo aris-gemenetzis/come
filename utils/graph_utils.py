@@ -29,7 +29,7 @@ def compute_probabilities(G):
     probs = defaultdict(dict)
     for node in G.nodes():
         probs[node]['probabilities'] = dict()
-        probs[node]['neighbours'] = dict()
+        probs[node]['neighbors'] = dict()
 
     # new code
     for source_node in G.nodes():
@@ -48,7 +48,7 @@ def compute_probabilities(G):
                 probs_.append(prob_)
                 neighs_.append(destination)
             probs[source_node]['probabilities'][current_node] = probs_ / np.sum(probs_)
-            probs[current_node]['neighbours'] = neighs_
+            probs[current_node]['neighbors'] = neighs_
 
             # Save neighbors time_edges
             neighbor2times = {}
@@ -61,7 +61,7 @@ def compute_probabilities(G):
                         # if 'time' not in att:
                             # raise 'no time attribute'
                         neighbor2times[neighbor].append(att['time'])
-            probs[current_node]['neighbours'] = neighbor2times
+            probs[current_node]['neighbors_time'] = neighbor2times
 
     # print to file
     # with open('./data/probs.txt', 'w') as test:
@@ -69,7 +69,7 @@ def compute_probabilities(G):
     log.info('finished computing probabilities atm')
     # log.info(probs[0]['probabilities'][1])
     # log.info(probs)
-    # log.info(probs['48']['neighbours']['13'])
+    # log.info(probs['48']['neighbors']['13'])
     return probs
 
 
@@ -100,6 +100,7 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
         walk.append(next_step)
     return walk
 
+    # path = [start]
     # while len(path) < path_length:
         # cur = path[-1]
         # if len(G.neighbors(cur)) > 0:
@@ -108,7 +109,7 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
             # else:
                 # path.append(path[0])
         # else:
-            #
+            # break
     # return path
 
 
@@ -317,3 +318,4 @@ def from_numpy(x, undirected=True):
 def grouper(n, iterable, padvalue=None):
     "grouper(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')"
     return zip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
+
