@@ -24,6 +24,7 @@ def compute_probabilities(G):
     # log.info('Parsed {} edges with {} chunks in {}s'.format(total, idx, t1-t0))
     p = 1
     q = 1
+    first_travel_done = set()
     log.info('computing probabilities atm')
     global probs  # making probs global dONT ASK
     probs = defaultdict(dict)
@@ -32,23 +33,34 @@ def compute_probabilities(G):
         probs[node]['neighbors'] = dict()
 
     # new code
-    for source_node in G.nodes():
-        for current_node in G.neighbors(source_node):
+    for source in G.nodes():
+        for current_node in G.neighbors(source):
             probs_ = list()
             neighs_ = list()
-            for destination in G.neighbors(current_node):
+            first_travel_weights = list()
 
-                if source_node == destination:  # return parameter
+            for destination in G.neighbors(current_node):
+                if source == destination:  # return parameter
                     prob_ = G[current_node][destination].get('weight', 1) * (1 / p)
-                elif destination in G.neighbors(source_node):  # distance of one
+                elif destination in G.neighbors(source):  # distance of one
                     prob_ = G[current_node][destination].get('weight', 1)
                 else:  # in-out parameter
                     prob_ = G[current_node][destination].get('weight', 1) * (1 / q)
 
                 probs_.append(prob_)
                 neighs_.append(destination)
-            probs[source_node]['probabilities'][current_node] = probs_ / np.sum(probs_)
+
+                # new code
+                if current_node not in first_travel_done:
+                    first_travel_weights.append(G[current_node][destination].get('weight', 1))
+
+            probs[source]['probabilities'][current_node] = probs_ / np.sum(probs_)
             probs[current_node]['neighbors'] = neighs_
+
+            if current_node not in first_travel_done:
+                probs_ = np.array(first_travel_weights)
+                probs[current_node]['first travel'] = probs_ / np.sum(probs_)
+                first_travel_done.add(current_node)
 
             # Save neighbors time_edges
             neighbor2times = {}
@@ -67,9 +79,6 @@ def compute_probabilities(G):
     # with open('./data/probs.txt', 'w') as test:
         # print(probs, file=test)
     log.info('finished computing probabilities atm')
-    # log.info(probs[0]['probabilities'][1])
-    # log.info(probs)
-    # log.info(probs['48']['neighbors']['13'])
     return probs
 
 
@@ -84,20 +93,52 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
     :return:
     '''
 
-    walk_len = path_length
+    # ctdne
+    linear = True  # should be part of input
+    half_life = 1  # should be part of input
+
     walk = [start]
-    walk_options = list(G[start])
-    if len(walk_options) == 0:
-        return walk
-    first_step = np.random.choice(walk_options)
-    walk.append(first_step)
-    for k in range(walk_len - 2):
-        walk_options = list(G[walk[-1]])
+    last_time = -np.inf
+    while len(walk) < path_length:
+
+        # first step
+        if len(walk) == 1:
+            probabilities = probs[walk[-1]]['first travel']
+        else:
+            probabilities = probs[walk[-1]]['probabilities'][walk[-2]]
+
+        walk_options = []
+        for neighbor, p in zip(probs[walk[-1]].get('neighbors', []), probabilities):
+            times = probs[walk[-1]]['neighbors_time'][neighbor]
+            if np.size(times) > 1:
+                times = np.squeeze(times)
+            else:
+                times = np.array([np.squeeze(times)])
+            walk_options += [(neighbor, p, t) for t in times if t > last_time]
+        # skip dead end nodes
         if len(walk_options) == 0:
             break
-        probabilities = probs[walk[-2]]['probabilities'][walk[-1]]
-        next_step = np.random.choice(walk_options, p=probabilities)
-        walk.append(next_step)
+        if len(walk) == 1:
+            last_time = min(map(lambda x: x[2], walk_options))
+
+        if linear:
+            time_probabilities = np.array(np.argsort(np.argsort(list(map(lambda x: x[2], walk_options)))[::-1]) + 1,
+                                          dtype=float)
+            final_probabilities = time_probabilities * np.array(list(map(lambda x: x[1], walk_options)))
+        else:
+            last_time = min(map(lambda x: x[2], walk_options))
+            final_probabilities = np.array(
+                list(map(lambda x: np.exp(x[1] * (x[2] - last_time) / half_life), walk_options)))
+        final_probabilities /= sum(final_probabilities)
+
+        walk_to_idx = np.random.choice(range(len(walk_options)), size=1, p=final_probabilities)[0]
+        walk_to = walk_options[walk_to_idx]
+
+        last_time = walk_to[2]
+        walk.append(walk_to[0])
+
+        # walk = list(map(str, walk))  # Convert all to strings
+
     return walk
 
     # path = [start]
@@ -271,21 +312,18 @@ def count_words(file):
 
 # my code (load function)
 def load_edge_file(file):
-    p = 1
+    w = 1
     G = nx.Graph()
     with open(file) as f:
         for line in f:
-            u, v, w, t = line.split()
+            # u, v, w, t = line.split()
+            u, v, t = line.split(',')
+            u, v = int(u), int(v)
             if G.has_edge(u, v):
                 if t not in G[u][v]['time']:
                     G[u][v]['time'].append(int(t))
             else:
                 G.add_edge(u, v, weight=float(w), time=[int(t)])
-    print(type(t), type(w))
-    print('graph', type(G['2']['141'].get('weight', 1)))
-    print('time',G['2']['141'].get('time', 1))
-    # print('test', G['2']['141'])
-    print(type(G))
     return G
 
 def load_matfile(file_, variable_name="network", undirected=True):
