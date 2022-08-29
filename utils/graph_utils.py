@@ -94,7 +94,7 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
     '''
 
     # ctdne
-    linear = True  # should be part of input
+    linear = False  # should be part of input
     half_life = 1  # should be part of input
 
     walk = [start]
@@ -126,10 +126,11 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
                                           dtype=float)
             final_probabilities = time_probabilities * np.array(list(map(lambda x: x[1], walk_options)))
         else:
-            last_time = min(map(lambda x: x[2], walk_options))
             final_probabilities = np.array(
                 list(map(lambda x: np.exp(x[1] * (x[2] - last_time) / half_life), walk_options)))
         final_probabilities /= sum(final_probabilities)
+        print(final_probabilities)
+        # final_probabilities = np.nan_to_num(final_probabilities, nan=0)
 
         walk_to_idx = np.random.choice(range(len(walk_options)), size=1, p=final_probabilities)[0]
         walk_to = walk_options[walk_to_idx]
@@ -316,7 +317,9 @@ def load_edge_file(file):
     G = nx.Graph()
     with open(file) as f:
         for line in f:
-            # u, v, w, t = line.split()
+           #  u, v, w, t = line.split()
+            # if int(t) == -1:
+                # t = 1
             u, v, t = line.split(',')
             u, v = int(u), int(v)
             if G.has_edge(u, v):
