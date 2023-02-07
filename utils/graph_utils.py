@@ -82,6 +82,24 @@ def compute_probabilities(G):
     return probs
 
 
+def mode_picker(walk_options, last_time, half_life, strategy=None, first_pick=None):
+    if first_pick:
+        mode = first_pick
+        order = 1
+    else:
+        mode = strategy
+        order = -1
+    if mode == 'rnd':
+        final_probabilities = np.full(len(walk_options), 1, dtype=float)
+    elif mode == 'lin':
+        time_probabilities = np.array(np.argsort(np.argsort(list(map(lambda x: x[2], walk_options)))[::order]) + 1,
+                                      dtype=np.float)
+        final_probabilities = time_probabilities * np.array(list(map(lambda x: x[1], walk_options)))
+    else:
+        final_probabilities = np.array(list(map(lambda x: np.exp(x[1] * (x[2] - last_time) / half_life), walk_options)))
+    return final_probabilities
+
+
 def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
     '''
     Returns a truncated random walk.
@@ -94,7 +112,9 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
     '''
 
     # ctdne
-    linear = False  # should be part of input
+    # rnd, lin, exp = 'random', 'linear', 'exponential'
+    # strategy = lin  # should be part of input
+    # linear = True  # should be part of input
     half_life = 1  # should be part of input
 
     walk = [start]
@@ -115,27 +135,30 @@ def __random_walk__(G, path_length, start, alpha=0, rand=random.Random()):
             else:
                 times = np.array([np.squeeze(times)])
             walk_options += [(neighbor, p, t) for t in times if t > last_time]
+
         # skip dead end nodes
         if len(walk_options) == 0:
             break
+
         if len(walk) == 1:
             last_time = min(map(lambda x: x[2], walk_options))
-
-        if linear:
-            time_probabilities = np.array(np.argsort(np.argsort(list(map(lambda x: x[2], walk_options)))[::-1]) + 1,
-                                          dtype=float)
-            final_probabilities = time_probabilities * np.array(list(map(lambda x: x[1], walk_options)))
+            # replace w different function or formula here
+            final_probabilities = mode_picker(last_time=last_time, walk_options=walk_options,
+                                              half_life=half_life, first_pick='lin')
         else:
-            final_probabilities = np.array(
-                list(map(lambda x: np.exp(x[1] * (x[2] - last_time) / half_life), walk_options)))
+            final_probabilities = mode_picker(last_time=last_time, walk_options=walk_options,
+                                              half_life=half_life, strategy='exp')
+
         final_probabilities /= sum(final_probabilities)
-        print(final_probabilities)
         # final_probabilities = np.nan_to_num(final_probabilities, nan=0)
+        # print(final_probabilities)
 
         walk_to_idx = np.random.choice(range(len(walk_options)), size=1, p=final_probabilities)[0]
         walk_to = walk_options[walk_to_idx]
+        # print(walk_to_idx, walk_to)
 
         last_time = walk_to[2]
+        # print(last_time)
         walk.append(walk_to[0])
 
         # walk = list(map(str, walk))  # Convert all to strings
@@ -311,22 +334,55 @@ def count_words(file):
             c.update(words)
     return c
 
+
+# my code (time-limited load function)
+def select_snapshot(file):
+    w = 1
+    H = nx.Graph()
+    with open(file, encoding='utf-8-sig') as f:
+        # f.readline()  # trash first line
+        # f.readline()  # trash second line
+        for line in f:
+            u, v, t = line.split(' ')
+            if int(t) >= 2019:
+                u, v = int(u), int(v)
+                if H.has_edge(u, v):
+                    if t not in H[u][v]['time']:
+                        H[u][v]['time'].append(int(t))
+                else:
+                    H.add_edge(u, v, weight=float(w), time=[int(t)])
+    return H
+
 # my code (load function)
 def load_edge_file(file):
     w = 1
     G = nx.Graph()
     with open(file) as f:
+        # f.readline()  # trash first line
+        # f.readline()  # trash second line
         for line in f:
-           #  u, v, w, t = line.split()
-            # if int(t) == -1:
-                # t = 1
-            u, v, t = line.split(',')
-            u, v = int(u), int(v)
+            u, v, t= line.split(' ')
+            u, v, t = int(u), int(v), int(t)
+            # t = t[:-3]  # reduce time granularity by 3 decimal points
+            # t = int(t) /60
             if G.has_edge(u, v):
                 if t not in G[u][v]['time']:
                     G[u][v]['time'].append(int(t))
             else:
                 G.add_edge(u, v, weight=float(w), time=[int(t)])
+    # pick lcc
+    # s = [G.subgraph(c).copy() for c in sorted(nx.connected_components(G), key=len, reverse=True)]
+    # G = G.subgraph(s[0]).copy()
+
+    # pick time subgraph
+    H = select_snapshot('C:/Users/Aris/Downloads/ComE-master/data/sets/dblp_edges.txt')
+    # print(type(H))
+    # print(H.nodes())
+    # print(type(H.nodes()))
+    # print(type(list(H.nodes)))
+
+    G = G.subgraph(list(H.nodes()))
+    print('edges: {} nodes: {}'.format(len(G.edges()), nx.number_of_nodes(G)))
     return G
 
 def load_matfile(file_, variable_name="network", undirected=True):
