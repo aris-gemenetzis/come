@@ -51,15 +51,15 @@ if __name__ == "__main__":
     alpha_betas = [(0.1, 0.1)]
     down_sampling = 0.0
 
-    ks = [5]
+    ks = [5]  # number of communities
     walks_filebase = os.path.join('data', output_file)            # where read/write the sampled path
 
 
 
     #CONSTRUCT THE GRAPH
-    G = graph_utils.load_matfile(os.path.join('./data', input_file, input_file + '.mat'), undirected=True)
+    # G = graph_utils.load_matfile(os.path.join('./data', input_file, input_file + '.mat'), undirected=True)
     # my code
-    # G = graph_utils.load_edge_file(r'C:\Users\Aris\Downloads\ComE-master\data\Dblp\enron.edges')
+    G = graph_utils.load_edge_file(r'C:\Users\Aris\Downloads\ComE-master\data\sets\dblp_edges.txt')
     # end of my code
     # Sampling the random walks for context
     log.info("sampling the paths")
@@ -76,8 +76,7 @@ if __name__ == "__main__":
                   size=representation_size,
                   down_sampling=down_sampling,
                   table_size=100000000,
-                  input_file=os.path.join(input_file, input_file),
-                  path_labels="./data")
+                  input_file=os.path.join(input_file, input_file))
 
 
     #Learning algorithm
@@ -157,9 +156,9 @@ if __name__ == "__main__":
                                                                                                                             model.k,
                                                                                                                             down_sampling))
                 # my code
-                t = range(0, 5)  # replaces model.vocab
+                t = range(0, k)  # replaces model.vocab
                 io_utils.save_embedding(model.context_embedding, model.vocab, file_name="{}_context".format(output_file))
-                io_utils.save_embedding(model.covariance_mat, t, file_name="{}_communities_covariance".format(output_file))
-                io_utils.save_embedding(model.centroid, t, file_name="{}_communities_mean".format(output_file))
+                # io_utils.save_embedding(model.covariance_mat, t, file_name="{}_communities_covariance".format(output_file))
+                # io_utils.save_embedding(model.centroid, t, file_name="{}_communities_mean".format(output_file))
                 io_utils.save_embedding(model.pi, model.vocab,
                                         file_name="{}_communities_pi".format(output_file))
