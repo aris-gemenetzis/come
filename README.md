@@ -5,5 +5,5 @@ which combines the ComE framework established by Cavallari et al. (2017) with dy
 
 The implementation is based on Python 3.6.1 and Cython 0.25.
 
-The core algorithm is only written in Cython, so a miniconda environment file is provided to run the program. 
+The core algorithm is only written in Cython, so a miniconda environment file is required to run the program. 
 
