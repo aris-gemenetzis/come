@@ -1,5 +1,5 @@
 # ComE+
-Implementation of thesis project
+Implementation of MSc Thesis project
 **Using Temporal Node Embeddings for Community Detection**
 which combines the ComE framework established by Cavallari et al. (2017) with dynamic CTDNE-based search developed by Nguyen et al. (2018).
 
